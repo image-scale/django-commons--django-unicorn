@@ -36,10 +36,14 @@ def _get_model_dict(model):
     for field in model._meta.get_fields():
         if field.many_to_many:
             try:
-                related_manager = getattr(model, field.name)
-                result[field.name] = list(related_manager.values_list("pk", flat=True))
-            except ValueError:
-                result[field.name] = []
+                if field.auto_created:
+                    attr_name = field.related_name or f"{field.name}_set"
+                else:
+                    attr_name = field.name
+                related_manager = getattr(model, attr_name)
+                result[attr_name] = list(related_manager.values_list("pk", flat=True))
+            except (ValueError, AttributeError):
+                pass
 
     return result
 
