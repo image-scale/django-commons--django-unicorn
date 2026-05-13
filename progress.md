@@ -43,3 +43,11 @@
 **Commit**: Add component caching
 **Acceptance**: 10/10 criteria met
 **Verification**: 2 tests FAIL on previous state (ImportError: constructed_views_cache), 270 PASS on current state
+
+## Round 7
+**Task**: Task 7 — Form validation
+**Files created**: tests/test_validation.py
+**Files modified**: dk_unicorn/components/unicorn_view.py, dk_unicorn/views/__init__.py
+**Commit**: Add form validation
+**Acceptance**: 10/10 criteria met
+**Verification**: 8 tests FAIL on previous state (AttributeError/_handle_validation_error, ValidationError unhandled), 286 PASS on current state

@@ -384,6 +384,27 @@ class Component(TemplateView):
     def is_valid(self, model_names=None):
         return len(self.validate(model_names).keys()) == 0
 
+    def _handle_validation_error(self, e):
+        NON_FIELD_ERRORS = "__all__"
+
+        if len(e.args) < 2 or not e.args[1]:
+            raise AssertionError("Error code must be specified") from e
+
+        if hasattr(e, "error_list"):
+            error_code = e.args[1]
+            for error in e.error_list:
+                if NON_FIELD_ERRORS in self.errors:
+                    self.errors[NON_FIELD_ERRORS].append({"code": error_code, "message": error.message})
+                else:
+                    self.errors[NON_FIELD_ERRORS] = [{"code": error_code, "message": error.message}]
+        elif hasattr(e, "message_dict"):
+            error_code = e.args[1]
+            for field, msg in e.message_dict.items():
+                if field in self.errors:
+                    self.errors[field].append({"code": error_code, "message": msg})
+                else:
+                    self.errors[field] = [{"code": error_code, "message": msg}]
+
     def validate(self, model_names=None):
         if self._validate_called:
             return self.errors

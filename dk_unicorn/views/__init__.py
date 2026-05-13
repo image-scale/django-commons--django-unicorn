@@ -3,6 +3,7 @@ import logging
 from functools import wraps
 
 import orjson
+from django.forms import ValidationError
 from django.http import HttpRequest, JsonResponse
 from django.http.response import HttpResponseNotModified
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
@@ -150,6 +151,7 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
 
     is_reset_called = False
     is_refresh_called = False
+    validate_all_fields = False
     return_data = None
     partials = []
 
@@ -214,27 +216,44 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
                 args=action.args,
             )
 
-            result = _call_method_name(component, action.method_name, action.args, action.kwargs)
+            try:
+                result = _call_method_name(component, action.method_name, action.args, action.kwargs)
 
-            component.called(action.method_name, action.args)
-            component_method_called.send(
-                sender=component.__class__,
-                component=component,
-                method_name=action.method_name,
-                args=action.args,
-                kwargs=action.kwargs,
-                result=result,
-                success=True,
-                error=None,
-            )
+                component.called(action.method_name, action.args)
+                component_method_called.send(
+                    sender=component.__class__,
+                    component=component,
+                    method_name=action.method_name,
+                    args=action.args,
+                    kwargs=action.kwargs,
+                    result=result,
+                    success=True,
+                    error=None,
+                )
 
-            if result is not None:
-                return_data = {"value": result}
+                if result is not None:
+                    return_data = {"value": result}
+            except ValidationError as e:
+                component._handle_validation_error(e)
 
     component.complete()
     component_completed.send(sender=component.__class__, component=component)
 
     component_request.data = orjson.loads(component.get_frontend_context_variables())
+
+    if not is_reset_called:
+        updated_data = {}
+        if not is_refresh_called:
+            for key, value in original_data.items():
+                if value != component_request.data.get(key):
+                    updated_data[key] = component_request.data.get(key)
+        else:
+            updated_data = component_request.data
+
+        if validate_all_fields:
+            component.validate()
+        else:
+            component.validate(model_names=list(updated_data.keys()))
 
     cache_full_tree(component)
 

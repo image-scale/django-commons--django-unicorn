@@ -37,3 +37,17 @@
 - [x] Component.create() checks cache before building a new component
 - [x] Component.create() with use_cache=False bypasses cache
 - [x] Message view calls cache_full_tree before rendering
+
+## Task 7: Form validation
+
+### Acceptance Criteria
+- [x] Component validates data using form_class (Form or ModelForm)
+- [x] validate() returns errors dict with field-specific validation errors
+- [x] validate(model_names=[...]) only validates specified fields
+- [x] is_valid() returns True/False based on validation
+- [x] _handle_validation_error processes dict ValidationErrors with error codes
+- [x] _handle_validation_error processes string ValidationErrors
+- [x] _handle_validation_error raises AssertionError when no error code
+- [x] Message view catches ValidationError from method calls
+- [x] Message view calls validate after processing actions
+- [x] Validation errors appear in response JSON errors field
