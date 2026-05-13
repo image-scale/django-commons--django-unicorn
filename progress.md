@@ -6,3 +6,10 @@
 **Commit**: Add a reactive component framework
 **Acceptance**: 24/24 criteria met
 **Verification**: tests FAIL on previous state (ImportError), PASS on current state
+
+## Round 2
+**Task**: Task 2 — Type casting and method call parsing
+**Files created**: dk_unicorn/typer.py, dk_unicorn/typing.py, dk_unicorn/call_method_parser.py, tests/test_typer.py, tests/test_call_method_parser.py
+**Commit**: Add type casting and method call parsing
+**Acceptance**: 19/19 criteria met
+**Verification**: tests FAIL on previous state (ModuleNotFoundError), PASS on current state

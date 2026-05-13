@@ -10,6 +10,7 @@ from django.views.generic.base import TemplateView
 
 from dk_unicorn import serializer
 from dk_unicorn.components.fields import UnicornField
+from dk_unicorn.components.template_response import ComponentTemplateResponse
 from dk_unicorn.settings import get_setting
 from dk_unicorn.signals import (
     component_completed,
@@ -139,6 +140,8 @@ class Component(TemplateView):
     component_kwargs: dict | None = None
 
     def __init__(self, component_args=None, **kwargs):
+        self.response_class = ComponentTemplateResponse
+
         self.component_name = kwargs.get("component_name", "")
         self.component_key = ""
         self.component_id = ""
@@ -387,6 +390,9 @@ class Component(TemplateView):
 
         response = self.render_to_response(
             context=self.get_context_data(),
+            component=self,
+            init_js=init_js,
+            epoch=epoch,
         )
 
         if hasattr(response, "render"):

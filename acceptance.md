@@ -5,24 +5,24 @@
 - [x] All criteria met (24/24)
 
 ## Task 2: Type casting and method call parsing
+### Acceptance Criteria
+- [x] All criteria met (19/19)
+
+## Task 3: Template rendering with data-binding attributes
 
 ### Acceptance Criteria
-- [ ] cast_value(int, "42") returns 42
-- [ ] cast_value(float, "3.14") returns 3.14
-- [ ] cast_value(bool, "True") returns True, cast_value(bool, "False") returns False
-- [ ] cast_value(datetime, "2020-09-12T01:02:03") returns a datetime object
-- [ ] cast_value(date, "2020-09-12") returns a date object
-- [ ] cast_value(time, "01:02:03") returns a time object
-- [ ] cast_value(UUID, "valid-uuid-string") returns a UUID object
-- [ ] cast_value handles Optional types (returns None for None value)
-- [ ] cast_value handles Union types (tries each type in order)
-- [ ] cast_value handles list[int] (casts each element)
-- [ ] cast_attribute_value uses type hints from the object to cast values
-- [ ] get_type_hints returns type hints for a class including parent classes
-- [ ] parse_call_method_name("method_name()") returns ("method_name", (), {})
-- [ ] parse_call_method_name("set_name('Bob')") returns ("set_name", ("Bob",), {})
-- [ ] parse_call_method_name("set_val(1, key='test')") returns ("set_val", (1,), {"key": "test"})
-- [ ] parse_call_method_name handles $-prefixed special methods
-- [ ] parse_kwarg("key='value'") returns {"key": "value"}
-- [ ] eval_value("42") returns 42 (integer), eval_value("'hello'") returns "hello" (string)
-- [ ] eval_value handles datetime/UUID strings that aren't valid Python literals
+- [ ] UnicornTemplateResponse renders component HTML and injects unicorn:id attribute on root element
+- [ ] UnicornTemplateResponse injects unicorn:name with the component name
+- [ ] UnicornTemplateResponse injects unicorn:key with the component key
+- [ ] UnicornTemplateResponse injects unicorn:data with serialized frontend context variables
+- [ ] UnicornTemplateResponse injects unicorn:calls with serialized JS calls array
+- [ ] UnicornTemplateResponse injects unicorn:meta with a data checksum
+- [ ] get_root_element extracts the first non-script HTML element from fragments
+- [ ] get_root_element handles full HTML documents with unicorn:view attribute
+- [ ] get_root_element raises error when no root element found
+- [ ] assert_has_single_wrapper_element raises error for multiple root elements
+- [ ] assert_has_single_wrapper_element raises error for void root elements (br, input, etc.)
+- [ ] is_html_well_formed returns True for balanced HTML tags
+- [ ] is_html_well_formed returns False for unbalanced HTML tags
+- [ ] Component.render() returns rendered HTML string with unicorn attributes
+- [ ] content_hash is computed and stored on the component for change detection
