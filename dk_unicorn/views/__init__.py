@@ -1,8 +1,10 @@
 import copy
 import logging
 from functools import wraps
+from typing import Any, Union, get_origin
 
 import orjson
+from django.db.models import Model
 from django.forms import ValidationError
 from django.http import HttpRequest, JsonResponse
 from django.http.response import HttpResponseNotModified
@@ -30,6 +32,11 @@ from dk_unicorn.views.property_setter import set_property_value
 from dk_unicorn.views.request import ComponentRequest
 from dk_unicorn.views.response import ComponentResponse
 from dk_unicorn.views.utils import set_property_from_data
+
+try:
+    from types import UnionType
+except ImportError:
+    UnionType = Union
 
 logger = logging.getLogger(__name__)
 
@@ -70,10 +77,28 @@ def _call_method_name(component, method_name, args, kwargs):
             if argument in type_hints:
                 type_hint = type_hints[argument]
 
-                if not isinstance(type_hint, type):
+                if (
+                    not isinstance(type_hint, type)
+                    and get_origin(type_hint) is not Union
+                    and get_origin(type_hint) is not UnionType
+                ):
                     continue
 
-                if argument in kwargs:
+                is_model = False
+                try:
+                    is_model = isinstance(type_hint, type) and issubclass(type_hint, Model)
+                except TypeError:
+                    pass
+
+                if is_model:
+                    if not kwargs:
+                        if len(args) > len(parsed_args):
+                            value = args[len(parsed_args)]
+                            parsed_args.append(type_hint.objects.get(pk=value))
+                    else:
+                        value = kwargs.get("pk")
+                        parsed_kwargs[argument] = type_hint.objects.get(pk=value)
+                elif argument in kwargs:
                     parsed_kwargs[argument] = cast_value(type_hint, kwargs[argument])
                 elif len(args) > len(parsed_args):
                     parsed_args.append(cast_value(type_hint, args[len(parsed_args)]))
