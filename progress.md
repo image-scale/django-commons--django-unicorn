@@ -35,3 +35,11 @@
 **Commit**: Add action processing and message endpoint
 **Acceptance**: 17/17 criteria met
 **Verification**: 17 tests FAIL on previous state (lambda view returns None), 256 PASS on current state
+
+## Round 6
+**Task**: Task 6 — Component caching
+**Files created**: dk_unicorn/cacher.py, tests/test_cacher.py
+**Files modified**: dk_unicorn/components/unicorn_view.py, dk_unicorn/views/__init__.py
+**Commit**: Add component caching
+**Acceptance**: 10/10 criteria met
+**Verification**: 2 tests FAIL on previous state (ImportError: constructed_views_cache), 270 PASS on current state

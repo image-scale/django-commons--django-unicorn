@@ -8,6 +8,7 @@ from django.http.response import HttpResponseNotModified
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
+from dk_unicorn.cacher import cache_full_tree
 from dk_unicorn.components import UnicornView
 from dk_unicorn.errors import RenderNotModifiedError, UnicornViewError
 from dk_unicorn.signals import (
@@ -234,6 +235,8 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
     component_completed.send(sender=component.__class__, component=component)
 
     component_request.data = orjson.loads(component.get_frontend_context_variables())
+
+    cache_full_tree(component)
 
     rendered_component = component.render(request=request, epoch=component_request.epoch)
     component.rendered(rendered_component)

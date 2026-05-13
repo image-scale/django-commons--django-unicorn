@@ -12,11 +12,13 @@ from django.http import HttpRequest, HttpResponseRedirect
 from django.views.generic.base import TemplateView
 
 from dk_unicorn import serializer
+from dk_unicorn.cacher import cache_full_tree, restore_from_cache
 from dk_unicorn.components.fields import UnicornField
 from dk_unicorn.components.template_response import ComponentTemplateResponse
 from dk_unicorn.errors import (
     ComponentClassLoadError,
     ComponentModuleLoadError,
+    UnicornCacheError,
 )
 from dk_unicorn.settings import get_setting
 from dk_unicorn.signals import (
@@ -27,6 +29,13 @@ from dk_unicorn.signals import (
 from dk_unicorn.utils import create_template, is_non_string_sequence
 
 logger = logging.getLogger(__name__)
+
+try:
+    from cachetools.lru import LRUCache
+except ImportError:
+    from cachetools import LRUCache
+
+constructed_views_cache = LRUCache(maxsize=100)
 
 STANDARD_KWARG_KEYS = {
     "id",
@@ -516,6 +525,14 @@ class Component(TemplateView):
                     except pickle.PickleError:
                         pass
 
+    def _cache_component(self, *, parent=None, component_args=None, **kwargs):
+        constructed_views_cache[self.component_id] = self
+
+        try:
+            cache_full_tree(self)
+        except UnicornCacheError as e:
+            logger.warning(e)
+
     def _is_public(self, name):
         excludes = []
 
@@ -553,6 +570,34 @@ class Component(TemplateView):
         component_args = component_args if component_args is not None else []
         kwargs = kwargs if kwargs is not None else {}
 
+        component_cache_key = f"unicorn:component:{component_id}"
+        cached_component = restore_from_cache(component_cache_key, request=request)
+
+        if not cached_component:
+            cached_component = constructed_views_cache.get(component_id)
+            if cached_component:
+                cached_component.setup(request)
+                cached_component._validate_called = False
+                cached_component.calls = []
+
+        if use_cache and cached_component:
+            cached_component.component_args = component_args
+            cached_component.component_kwargs = kwargs
+
+            if parent is not None:
+                cached_component.parent = parent
+
+            for key, value in kwargs.items():
+                if hasattr(cached_component, key):
+                    setattr(cached_component, key, value)
+
+            cached_component._cache_component(parent=parent, component_args=component_args, **kwargs)
+
+            cached_component.hydrate()
+            component_hydrated.send(sender=cached_component.__class__, component=cached_component)
+
+            return cached_component
+
         locations = get_locations(component_name)
 
         for module_name, class_name in locations:
@@ -573,6 +618,8 @@ class Component(TemplateView):
                     component_args=component_args,
                     **kwargs,
                 )
+
+                component._cache_component(parent=parent, component_args=component_args, **kwargs)
 
                 return component
             except ModuleNotFoundError as e:

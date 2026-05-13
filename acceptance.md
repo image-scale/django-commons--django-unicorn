@@ -23,3 +23,17 @@
 - [x] The message view returns JSON with id, dom, data, errors, and calls
 - [x] The message view requires POST method (rejects GET)
 - [x] The message view validates CSRF token
+
+## Task 6: Component caching
+
+### Acceptance Criteria
+- [x] CacheableComponent strips request, extra_context, and forms before pickling
+- [x] CacheableComponent replaces parent/children with PointerUnicornView stubs
+- [x] CacheableComponent restores all stripped state on context exit
+- [x] CacheableComponent restores state even when pickle fails (UnicornCacheError)
+- [x] cache_full_tree caches entire component tree via Django cache
+- [x] restore_from_cache rebuilds parent/child tree from cached stubs
+- [x] restore_from_cache returns None for missing cache keys
+- [x] Component.create() checks cache before building a new component
+- [x] Component.create() with use_cache=False bypasses cache
+- [x] Message view calls cache_full_tree before rendering
