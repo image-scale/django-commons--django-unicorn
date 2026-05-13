@@ -20,3 +20,18 @@
 **Commit**: Add template rendering that automatically injects data-binding attributes
 **Acceptance**: 15/15 criteria met
 **Verification**: tests FAIL on previous state (ModuleNotFoundError), PASS on current state
+
+## Round 4
+**Task**: Task 4 — Template tags for embedding components
+**Files created**: dk_unicorn/templatetags/unicorn.py, dk_unicorn/urls.py, dk_unicorn/templates/unicorn/scripts.html, dk_unicorn/templates/unicorn/errors.html, tests/templatetags/test_tags.py, tests/components/test_create.py
+**Commit**: Add template tags for embedding components
+**Acceptance**: 13/13 criteria met
+**Verification**: tests FAIL on previous state (ImportError), PASS on current state
+
+## Round 5
+**Task**: Task 5 — Action processing and message endpoint
+**Files created**: dk_unicorn/views/__init__.py, dk_unicorn/views/action.py, dk_unicorn/views/property_setter.py, dk_unicorn/views/request.py, dk_unicorn/views/response.py, tests/views/__init__.py, tests/views/fake_components.py, tests/views/utils.py, tests/views/test_action.py, tests/views/test_property_setter.py, tests/views/test_request.py, tests/views/test_message.py
+**Files modified**: dk_unicorn/urls.py
+**Commit**: Add action processing and message endpoint
+**Acceptance**: 17/17 criteria met
+**Verification**: 17 tests FAIL on previous state (lambda view returns None), 256 PASS on current state
