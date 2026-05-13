@@ -58,3 +58,85 @@
 **Commit**: Add management command for scaffolding components
 **Acceptance**: 9/9 criteria met
 **Verification**: Tests FAIL without production code (ModuleNotFoundError), 294 PASS on current state
+
+## Round 9
+**Task**: @timed profiling decorator
+**Files created**: dk_unicorn/decorators.py, tests/test_decorators.py
+**Commit**: Add @timed profiling decorator that logs function execution time
+**Acceptance**: Decorator logs in DEBUG, passes through in production, preserves function name
+**Verification**: Tests FAIL without production code (ModuleNotFoundError), 302 PASS on current state
+
+## Round 10
+**Task**: Return class for method results
+**Files created**: dk_unicorn/views/objects.py, tests/views/test_objects.py
+**Commit**: Add Return class for capturing method call results with redirect/poll support
+**Acceptance**: Return handles HttpResponseRedirect, HashUpdate, LocationUpdate, PollUpdate, get_data() serialization
+**Verification**: Tests FAIL without production code (ModuleNotFoundError), 316 PASS on current state
+
+## Round 11
+**Task**: DbModel class
+**Files created**: dk_unicorn/db.py, tests/test_db.py
+**Commit**: Add DbModel class for wrapping Django model references with defaults
+**Acceptance**: DbModel stores name, model_class, and defaults; defaults isolation between instances
+**Verification**: Tests FAIL without production code (ModuleNotFoundError), 320 PASS on current state
+
+## Round 12
+**Task**: ModelValueMixin
+**Files created**: dk_unicorn/components/mixins.py, tests/test_mixins.py
+**Files modified**: dk_unicorn/serializer.py
+**Commit**: Add ModelValueMixin for serializing model instances to dictionaries
+**Acceptance**: value() returns model dict, supports field filtering; fixed _get_model_dict for reverse M2M
+**Verification**: Tests FAIL without production code (ModuleNotFoundError), 323 PASS on current state
+
+## Round 13
+**Task**: set_property_from_data with type-aware property setting
+**Files created**: dk_unicorn/views/utils.py, tests/views/test_utils.py
+**Commit**: Add set_property_from_data for type-aware property setting from request data
+**Acceptance**: Handles Model, UnicornField, dataclass, QuerySet, type-hint casting, access control
+**Verification**: Tests FAIL without production code (ModuleNotFoundError), 338 PASS on current state
+
+## Round 14
+**Task**: Integrate Return class into message view
+**Files modified**: dk_unicorn/views/__init__.py, dk_unicorn/views/objects.py, dk_unicorn/views/response.py, tests/views/fake_components.py, tests/views/test_message.py
+**Commit**: Integrate Return class into message view for redirect/poll/hash handling
+**Acceptance**: Method returns wrap in Return, redirect/poll/hash in response JSON; set_property_from_data replaces inline _set_property_from_data
+**Verification**: New tests don't exist in old state, 341 PASS on current state
+
+## Round 15
+**Task**: Setter methods, $validate, $parent delegation
+**Files modified**: dk_unicorn/views/__init__.py, tests/views/fake_components.py, tests/views/test_message.py
+**Commit**: Add setter method parsing, $validate action, and $parent method delegation
+**Acceptance**: Setter methods (name='Bob'), $validate triggers full validation, $parent walks component tree
+**Verification**: New tests don't exist in old state, 343 PASS on current state
+
+## Round 16
+**Task**: Union/Optional type hints and Model argument resolution
+**Files created**: tests/views/test_call_method.py
+**Files modified**: dk_unicorn/views/__init__.py
+**Commit**: Add Union/Optional type hint handling and Model argument resolution in method calls
+**Acceptance**: Union/Optional type hints cast correctly, Model-typed args auto-resolved via pk lookup
+**Verification**: test_call_with_optional_int and test_call_with_model_arg FAIL on old state, 351 PASS on current state
+
+## Round 17
+**Task**: Serial request queuing and authentication enforcement
+**Files created**: tests/views/test_serial_auth.py
+**Files modified**: dk_unicorn/views/__init__.py
+**Commit**: Add serial request queuing and authentication enforcement
+**Acceptance**: Serial queue via cache, auth check with LoginRequiredMiddleware, ignore_m2m=True in initial hydration
+**Verification**: ImportError for _check_auth/_handle_serial_queue on old state, 359 PASS on current state
+
+## Round 18
+**Task**: Partial DOM rendering
+**Files created**: tests/views/test_partials.py
+**Files modified**: dk_unicorn/views/response.py
+**Commit**: Add partial DOM rendering for targeted component updates
+**Acceptance**: Partial fragments by unicorn:key, by id, by target; root match; not-found handling
+**Verification**: test_partial_by_unicorn_key FAILS on old state, 366 PASS on current state
+
+## Round 19
+**Task**: Meta.safe fields, dispatch/as_view, error signal, QuerySet property support
+**Files created**: tests/components/test_safe_dispatch.py, tests/views/test_signal_error.py
+**Files modified**: dk_unicorn/components/unicorn_view.py, dk_unicorn/views/__init__.py, dk_unicorn/views/property_setter.py
+**Commit**: Add Meta.safe fields, dispatch/as_view, error signal, and QuerySet property support
+**Acceptance**: _handle_safe_fields marks Meta.safe strings, dispatch()/as_view() for standalone views, error signal on ValidationError, QuerySet in property traversal
+**Verification**: AttributeError for _handle_safe_fields on old state, 373 PASS on current state
