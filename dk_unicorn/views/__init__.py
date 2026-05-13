@@ -4,6 +4,8 @@ from functools import wraps
 from typing import Any, Union, get_origin
 
 import orjson
+from django.conf import settings as django_settings
+from django.core.cache import caches
 from django.db.models import Model
 from django.forms import ValidationError
 from django.http import HttpRequest, JsonResponse
@@ -13,7 +15,8 @@ from django.views.decorators.http import require_POST
 
 from dk_unicorn.cacher import cache_full_tree
 from dk_unicorn.components import UnicornView
-from dk_unicorn.errors import RenderNotModifiedError, UnicornViewError
+from dk_unicorn.errors import RenderNotModifiedError, UnicornAuthenticationError, UnicornViewError
+from dk_unicorn.settings import get_cache_alias, get_serial_enabled, get_serial_timeout
 from dk_unicorn.signals import (
     component_completed,
     component_hydrated,
@@ -121,12 +124,84 @@ def handle_error(view_func):
             return view_func(*args, **kwargs)
         except UnicornViewError as e:
             return JsonResponse({"error": str(e)})
+        except UnicornAuthenticationError as e:
+            return JsonResponse({"error": str(e)}, status=403)
         except RenderNotModifiedError:
             return HttpResponseNotModified()
         except AssertionError as e:
             return JsonResponse({"error": str(e)})
 
     return wraps(view_func)(wrapped_view)
+
+
+def _check_auth(request, component):
+    login_required_middleware = "django.contrib.auth.middleware.LoginRequiredMiddleware"
+    if login_required_middleware in getattr(django_settings, "MIDDLEWARE", []):
+        user = getattr(request, "user", None)
+        if user is not None and not getattr(user, "is_authenticated", True):
+            meta = getattr(component, "Meta", None)
+            if not (meta is not None and getattr(meta, "login_not_required", False)):
+                raise UnicornAuthenticationError("Authentication required")
+
+
+def _handle_serial_queue(request, component_request):
+    cache = caches[get_cache_alias()]
+    queue_cache_key = f"unicorn:queue:{component_request.id}"
+    component_requests = cache.get(queue_cache_key) or []
+
+    component_request.request = None
+    component_requests.append(component_request)
+
+    cache.set(queue_cache_key, component_requests, timeout=get_serial_timeout())
+
+    if len(component_requests) > 1:
+        original_epoch = component_requests[0].epoch
+        return {
+            "queued": True,
+            "epoch": component_request.epoch,
+            "original_epoch": original_epoch,
+        }
+
+    return _process_serial_queue(request, queue_cache_key)
+
+
+def _process_serial_queue(request, queue_cache_key):
+    cache = caches[get_cache_alias()]
+    component_requests = cache.get(queue_cache_key)
+
+    if not component_requests or not isinstance(component_requests, list):
+        raise UnicornViewError(f"No request found for {queue_cache_key}")
+
+    component_requests = sorted(component_requests, key=lambda r: r.epoch)
+    first_request = component_requests[0]
+    first_request.request = request
+
+    try:
+        first_result = _process_request(request, first_request)
+    finally:
+        component_requests = cache.get(queue_cache_key)
+        if component_requests:
+            component_requests.pop(0)
+            cache.set(queue_cache_key, component_requests, timeout=get_serial_timeout())
+
+    if component_requests:
+        merged_request = None
+        for additional_request in copy.deepcopy(component_requests):
+            if merged_request:
+                merged_request.action_queue.extend(additional_request.action_queue)
+            else:
+                merged_request = additional_request
+                for key, val in first_result.get("data", {}).items():
+                    merged_request.data[key] = val
+
+            component_requests.pop(0)
+            cache.set(queue_cache_key, component_requests, timeout=get_serial_timeout())
+
+        if merged_request:
+            merged_request.request = request
+            return _handle_serial_queue(request, merged_request)
+
+    return first_result
 
 
 @handle_error
@@ -139,11 +214,22 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
 
     component_request = ComponentRequest(request, component_name)
 
+    if get_serial_enabled():
+        result = _handle_serial_queue(request, component_request)
+    else:
+        result = _process_request(request, component_request)
+
+    return JsonResponse(result, json_dumps_params={"separators": (",", ":")})
+
+
+def _process_request(request, component_request):
     component = UnicornView.create(
         component_id=component_request.id,
         component_name=component_request.name,
         request=request,
     )
+
+    _check_auth(request, component)
 
     if component.request is None:
         component.request = request
@@ -154,7 +240,7 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
     component_pre_parsed.send(sender=component.__class__, component=component)
 
     for property_name, property_value in component_request.data.items():
-        set_property_from_data(component, property_name, property_value)
+        set_property_from_data(component, property_name, property_value, ignore_m2m=True)
 
     component.post_parse()
     component_post_parsed.send(sender=component.__class__, component=component)
@@ -349,6 +435,4 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
     )
 
     response = ComponentResponse(component, component_request, return_data=return_data, partials=partials)
-    result = response.get_data()
-
-    return JsonResponse(result, json_dumps_params={"separators": (",", ":")})
+    return response.get_data()
