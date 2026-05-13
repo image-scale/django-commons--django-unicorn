@@ -24,26 +24,13 @@ from dk_unicorn.signals import (
 from dk_unicorn.typer import cast_value, get_type_hints
 from dk_unicorn.utils import get_method_arguments
 from dk_unicorn.views.action import CallMethod, Refresh, Reset, SyncInput, Toggle
+from dk_unicorn.views.objects import Return
 from dk_unicorn.views.property_setter import set_property_value
 from dk_unicorn.views.request import ComponentRequest
 from dk_unicorn.views.response import ComponentResponse
+from dk_unicorn.views.utils import set_property_from_data
 
 logger = logging.getLogger(__name__)
-
-
-def _set_property_from_data(component, name, value):
-    try:
-        if not hasattr(component, name):
-            return
-        if not component._is_public(name):
-            return
-    except ValueError:
-        return
-
-    if hasattr(component, "_set_property"):
-        component._set_property(name, value, call_updating_method=True, call_updated_method=False)
-    else:
-        setattr(component, name, value)
 
 
 def _get_property_value(component, property_name):
@@ -141,7 +128,7 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
     component_pre_parsed.send(sender=component.__class__, component=component)
 
     for property_name, property_value in component_request.data.items():
-        _set_property_from_data(component, property_name, property_value)
+        set_property_from_data(component, property_name, property_value)
 
     component.post_parse()
     component_post_parsed.send(sender=component.__class__, component=component)
@@ -152,7 +139,7 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
     is_reset_called = False
     is_refresh_called = False
     validate_all_fields = False
-    return_data = None
+    return_data = Return("", [], {})
     partials = []
 
     for action in component_request.action_queue:
@@ -197,7 +184,7 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
                 request=request,
             )
             for pname, pvalue in component_request.data.items():
-                _set_property_from_data(component, pname, pvalue)
+                set_property_from_data(component, pname, pvalue)
             component.hydrate()
             is_refresh_called = True
 
@@ -208,6 +195,8 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
                 set_property_value(component, property_name, property_value)
 
         elif isinstance(action, CallMethod):
+            return_data = Return(action.method_name, list(action.args), action.kwargs)
+
             component.calling(action.method_name, action.args)
             component_method_calling.send(
                 sender=component.__class__,
@@ -232,7 +221,7 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
                 )
 
                 if result is not None:
-                    return_data = {"value": result}
+                    return_data.value = result
             except ValidationError as e:
                 component._handle_validation_error(e)
 

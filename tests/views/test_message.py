@@ -119,6 +119,40 @@ class TestMessageViewCallMethod:
         assert "return" in response
         assert response["return"]["value"] == "booya"
 
+    def test_call_method_redirect(self, client):
+        response = post_and_get_response(
+            client,
+            url="/unicorn/message/tests.views.fake_components.FakeComponent",
+            action_queue=[
+                {"type": "callMethod", "payload": {"name": "redirect_action"}},
+            ],
+        )
+        assert "redirect" in response
+        assert response["redirect"]["url"] == "/new-page/"
+
+    def test_call_method_hash_update(self, client):
+        response = post_and_get_response(
+            client,
+            url="/unicorn/message/tests.views.fake_components.FakeComponent",
+            action_queue=[
+                {"type": "callMethod", "payload": {"name": "hash_action"}},
+            ],
+        )
+        assert "redirect" in response
+        assert response["redirect"]["hash"] == "#section-2"
+
+    def test_call_method_poll_update(self, client):
+        response = post_and_get_response(
+            client,
+            url="/unicorn/message/tests.views.fake_components.FakeComponent",
+            action_queue=[
+                {"type": "callMethod", "payload": {"name": "poll_action"}},
+            ],
+        )
+        assert "poll" in response
+        assert response["poll"]["timing"] == 3000
+        assert response["poll"]["method"] == "check_status"
+
 
 class TestMessageViewReset:
     def test_reset(self, client):

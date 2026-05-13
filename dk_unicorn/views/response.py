@@ -45,7 +45,7 @@ class ComponentResponse:
 
             if (
                 rendered_hash == request_hash
-                and not self.return_data
+                and not (self.return_data and self.return_data.has_value if hasattr(self.return_data, 'has_value') else self.return_data)
                 and not all_calls
             ):
                 raise RenderNotModifiedError("Render not modified")
@@ -54,9 +54,18 @@ class ComponentResponse:
         root_element.set("unicorn:meta", data_checksum)
         result["dom"] = element_to_str(root_element)
 
-        if self.return_data:
-            result["return"] = self.return_data
-            if hasattr(self.return_data, "get"):
+        if self.return_data and (hasattr(self.return_data, 'has_value') and self.return_data.has_value or not hasattr(self.return_data, 'has_value')):
+            return_dict = None
+            if hasattr(self.return_data, "get_data"):
+                return_dict = self.return_data.get_data()
+                if return_dict:
+                    result["return"] = return_dict
+                if self.return_data.redirect:
+                    result["redirect"] = self.return_data.redirect
+                if self.return_data.poll:
+                    result["poll"] = self.return_data.poll
+            elif hasattr(self.return_data, "get"):
+                result["return"] = self.return_data
                 if self.return_data.get("redirect"):
                     result["redirect"] = self.return_data["redirect"]
                 if self.return_data.get("poll"):

@@ -58,3 +58,7 @@ class Return:
             logger.exception(e)
 
         return {}
+
+    @property
+    def has_value(self):
+        return self._value != {} or self.redirect != {} or self.poll != {}

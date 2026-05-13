@@ -1,4 +1,7 @@
+from django.http import HttpResponseRedirect
+
 from dk_unicorn.components import UnicornView
+from dk_unicorn.components.updaters import HashUpdate, PollUpdate
 
 
 class FakeComponent(UnicornView):
@@ -23,3 +26,12 @@ class FakeComponent(UnicornView):
 
     def set_flavor(self, value=""):
         self.method_arg = value
+
+    def redirect_action(self):
+        return HttpResponseRedirect("/new-page/")
+
+    def hash_action(self):
+        return HashUpdate("#section-2")
+
+    def poll_action(self):
+        return PollUpdate(timing=3000, method="check_status")
