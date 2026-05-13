@@ -35,3 +35,11 @@ class FakeComponent(UnicornView):
 
     def poll_action(self):
         return PollUpdate(timing=3000, method="check_status")
+
+
+class FakeParentComponent(UnicornView):
+    template_name = "templates/test_component.html"
+    parent_count = 0
+
+    def parent_method(self):
+        self.parent_count += 1

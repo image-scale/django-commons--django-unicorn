@@ -153,6 +153,30 @@ class TestMessageViewCallMethod:
         assert response["poll"]["timing"] == 3000
         assert response["poll"]["method"] == "check_status"
 
+    def test_setter_method(self, client):
+        data = {"method_count": 0}
+        response = post_and_get_response(
+            client,
+            url="/unicorn/message/tests.views.fake_components.FakeComponent",
+            data=data,
+            action_queue=[
+                {"type": "callMethod", "payload": {"name": "method_count=42"}},
+            ],
+        )
+        assert response["data"]["method_count"] == 42
+
+    def test_validate_action(self, client):
+        data = {"method_count": 0}
+        response = post_and_get_response(
+            client,
+            url="/unicorn/message/tests.views.fake_components.FakeComponent",
+            data=data,
+            action_queue=[
+                {"type": "callMethod", "payload": {"name": "$validate"}},
+            ],
+        )
+        assert "data" in response
+
 
 class TestMessageViewReset:
     def test_reset(self, client):

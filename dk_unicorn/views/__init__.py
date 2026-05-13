@@ -21,6 +21,7 @@ from dk_unicorn.signals import (
     component_pre_parsed,
     component_rendered,
 )
+from dk_unicorn.call_method_parser import InvalidKwargError, parse_call_method_name, parse_kwarg
 from dk_unicorn.typer import cast_value, get_type_hints
 from dk_unicorn.utils import get_method_arguments
 from dk_unicorn.views.action import CallMethod, Refresh, Reset, SyncInput, Toggle
@@ -195,35 +196,105 @@ def message(request: HttpRequest, component_name: str = None) -> JsonResponse:
                 set_property_value(component, property_name, property_value)
 
         elif isinstance(action, CallMethod):
-            return_data = Return(action.method_name, list(action.args), action.kwargs)
+            call_method_name = action.method_name
+            method_args = action.args
+            method_kwargs = action.kwargs
 
-            component.calling(action.method_name, action.args)
-            component_method_calling.send(
-                sender=component.__class__,
-                component=component,
-                name=action.method_name,
-                args=action.args,
-            )
+            parent_component = None
+            parents = call_method_name.split(".")
+            for parent in parents:
+                if parent == "$parent":
+                    parent_component = component.parent
+                    if parent_component:
+                        parent_component.force_render = True
+                    call_method_name = call_method_name[8:]
 
-            try:
-                result = _call_method_name(component, action.method_name, action.args, action.kwargs)
+            (method_name, parsed_args, parsed_kwargs) = parse_call_method_name(call_method_name)
+            if not method_args:
+                method_args = parsed_args
+            if not method_kwargs:
+                method_kwargs = parsed_kwargs
 
-                component.called(action.method_name, action.args)
-                component_method_called.send(
-                    sender=component.__class__,
-                    component=component,
-                    method_name=action.method_name,
-                    args=action.args,
-                    kwargs=action.kwargs,
-                    result=result,
-                    success=True,
-                    error=None,
+            return_data = Return(method_name, list(method_args), method_kwargs)
+            setter_method = {}
+
+            if "=" in call_method_name:
+                try:
+                    setter_method = parse_kwarg(call_method_name, raise_if_unparseable=True)
+                except InvalidKwargError:
+                    pass
+
+            if setter_method:
+                property_name = next(iter(setter_method.keys()))
+                property_value = setter_method[property_name]
+
+                if not component._is_public(property_name):
+                    raise UnicornViewError(f"'{property_name}' is not a valid property name")
+
+                set_property_value(component, property_name, property_value)
+                return_data = Return(property_name, [property_value])
+
+            elif method_name == "$validate":
+                validate_all_fields = True
+
+            elif method_name == "$refresh":
+                component = UnicornView.create(
+                    component_id=component_request.id,
+                    component_name=component_request.name,
+                    request=request,
+                )
+                if component_request.data is not None:
+                    for pname, pvalue in component_request.data.items():
+                        set_property_from_data(component, pname, pvalue)
+                component.hydrate()
+                is_refresh_called = True
+
+            elif method_name == "$reset":
+                component = UnicornView.create(
+                    component_id=component_request.id,
+                    component_name=component_request.name,
+                    request=request,
+                    use_cache=False,
+                )
+                component.errors = {}
+                is_reset_called = True
+
+            elif method_name == "$toggle":
+                for property_name in method_args:
+                    property_value = _get_property_value(component, property_name)
+                    property_value = not property_value
+                    set_property_value(component, property_name, property_value)
+
+            else:
+                component_with_method = parent_component or component
+
+                component_with_method.calling(method_name, method_args)
+                component_method_calling.send(
+                    sender=component_with_method.__class__,
+                    component=component_with_method,
+                    name=method_name,
+                    args=method_args,
                 )
 
-                if result is not None:
-                    return_data.value = result
-            except ValidationError as e:
-                component._handle_validation_error(e)
+                try:
+                    result = _call_method_name(component_with_method, method_name, method_args, method_kwargs)
+
+                    component_with_method.called(method_name, method_args)
+                    component_method_called.send(
+                        sender=component_with_method.__class__,
+                        component=component_with_method,
+                        method_name=method_name,
+                        args=method_args,
+                        kwargs=method_kwargs,
+                        result=result,
+                        success=True,
+                        error=None,
+                    )
+
+                    if result is not None:
+                        return_data.value = result
+                except ValidationError as e:
+                    component._handle_validation_error(e)
 
     component.complete()
     component_completed.send(sender=component.__class__, component=component)
