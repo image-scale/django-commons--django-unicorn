@@ -54,6 +54,38 @@ class ComponentResponse:
         root_element.set("unicorn:meta", data_checksum)
         result["dom"] = element_to_str(root_element)
 
+        if self.partials:
+            partial_doms = []
+            for partial in self.partials:
+                target = partial.get("target") or partial.get("key") or partial.get("id")
+                if not target:
+                    continue
+
+                found = False
+
+                if root_element.get("unicorn:key") == target:
+                    partial_doms.append({"key": target, "dom": element_to_str(root_element)})
+                    found = True
+                elif root_element.get("id") == target:
+                    partial_doms.append({"id": target, "dom": element_to_str(root_element)})
+                    found = True
+
+                if not found:
+                    for element in root_element.iter():
+                        if element.get("unicorn:key") == target:
+                            partial_doms.append({"key": target, "dom": element_to_str(element)})
+                            found = True
+                            break
+
+                if not found:
+                    for element in root_element.iter():
+                        if element.get("id") == target:
+                            partial_doms.append({"id": target, "dom": element_to_str(element)})
+                            break
+
+            if partial_doms:
+                result["partials"] = partial_doms
+
         if self.return_data and (hasattr(self.return_data, 'has_value') and self.return_data.has_value or not hasattr(self.return_data, 'has_value')):
             return_dict = None
             if hasattr(self.return_data, "get_data"):
