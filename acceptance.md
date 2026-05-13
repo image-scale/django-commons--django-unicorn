@@ -1,28 +1,21 @@
 # Acceptance Criteria
 
-## Task 1: Core component framework with serialization and utilities
-### Acceptance Criteria
-- [x] All criteria met (24/24)
+## Tasks 1-3: Previously completed
+- [x] All criteria met
 
-## Task 2: Type casting and method call parsing
-### Acceptance Criteria
-- [x] All criteria met (19/19)
-
-## Task 3: Template rendering with data-binding attributes
+## Task 4: Template tags for embedding components
 
 ### Acceptance Criteria
-- [ ] UnicornTemplateResponse renders component HTML and injects unicorn:id attribute on root element
-- [ ] UnicornTemplateResponse injects unicorn:name with the component name
-- [ ] UnicornTemplateResponse injects unicorn:key with the component key
-- [ ] UnicornTemplateResponse injects unicorn:data with serialized frontend context variables
-- [ ] UnicornTemplateResponse injects unicorn:calls with serialized JS calls array
-- [ ] UnicornTemplateResponse injects unicorn:meta with a data checksum
-- [ ] get_root_element extracts the first non-script HTML element from fragments
-- [ ] get_root_element handles full HTML documents with unicorn:view attribute
-- [ ] get_root_element raises error when no root element found
-- [ ] assert_has_single_wrapper_element raises error for multiple root elements
-- [ ] assert_has_single_wrapper_element raises error for void root elements (br, input, etc.)
-- [ ] is_html_well_formed returns True for balanced HTML tags
-- [ ] is_html_well_formed returns False for unbalanced HTML tags
-- [ ] Component.render() returns rendered HTML string with unicorn attributes
-- [ ] content_hash is computed and stored on the component for change detection
+- [ ] {% unicorn_scripts %} renders a script tag inclusion template
+- [ ] {% unicorn 'component-name' %} renders a component inline in a template
+- [ ] The unicorn tag generates a unique component_id for each component
+- [ ] The unicorn tag resolves the component name from a template variable
+- [ ] The unicorn tag accepts keyword arguments passed to the component
+- [ ] Child components use parent ID as part of their component_id
+- [ ] Component.create() factory discovers and instantiates components by name
+- [ ] Component.create() searches through configured APPS to find components
+- [ ] Component.create() raises ComponentModuleLoadError when module not found
+- [ ] Component.create() raises ComponentClassLoadError when class not found
+- [ ] get_locations returns list of (module, class) pairs for a component name
+- [ ] URL configuration provides a message endpoint path
+- [ ] unicorn_errors tag renders form validation errors from component context

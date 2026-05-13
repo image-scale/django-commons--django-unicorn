@@ -1,9 +1,12 @@
+import importlib
 import inspect
 import logging
 import pickle
 from collections.abc import Callable, Sequence
-from typing import Any, cast
+from functools import lru_cache
+from typing import Any, Optional, cast
 
+from django.apps import apps as django_apps_module
 from django.db.models import Model
 from django.http import HttpRequest, HttpResponseRedirect
 from django.views.generic.base import TemplateView
@@ -11,6 +14,10 @@ from django.views.generic.base import TemplateView
 from dk_unicorn import serializer
 from dk_unicorn.components.fields import UnicornField
 from dk_unicorn.components.template_response import ComponentTemplateResponse
+from dk_unicorn.errors import (
+    ComponentClassLoadError,
+    ComponentModuleLoadError,
+)
 from dk_unicorn.settings import get_setting
 from dk_unicorn.signals import (
     component_completed,
@@ -98,6 +105,42 @@ def to_dash_case(s):
 def to_pascal_case(s):
     s = to_snake_case(s)
     return "".join(word.title() for word in s.split("_"))
+
+
+@lru_cache(maxsize=128, typed=True)
+def get_locations(component_name):
+    locations = []
+
+    if "." in component_name:
+        component_name = component_name.replace("/", ".")
+        class_name = component_name.split(".")[-1]
+        module_name = component_name.replace(f".{class_name}", "")
+        locations.append((module_name, class_name))
+
+        if component_name.endswith("View") or component_name.endswith("Component"):
+            return locations
+
+    component_name = component_name.replace("/", ".")
+    class_name = to_pascal_case(component_name)
+
+    if "." in class_name:
+        parts = class_name.split(".")
+        if parts[-1]:
+            class_name = parts[-1]
+
+    class_name = f"{class_name}View"
+    module_name = to_snake_case(component_name)
+
+    all_django_apps = [app_config.name for app_config in django_apps_module.get_app_configs()]
+    unicorn_apps = get_setting("APPS", all_django_apps)
+
+    if not is_non_string_sequence(unicorn_apps):
+        raise AssertionError("APPS is expected to be a list, tuple or set")
+
+    locations += [(f"{app}.components.{module_name}", class_name) for app in unicorn_apps]
+    locations.append((f"components.{module_name}", class_name))
+
+    return locations
 
 
 def build_component(
@@ -486,6 +529,65 @@ class Component(TemplateView):
             or name in PROTECTED_NAMES
             or name in self._hook_methods_cache
             or name in excludes
+        )
+
+    @staticmethod
+    def create(
+        *,
+        component_id,
+        component_name,
+        component_key="",
+        parent=None,
+        request=None,
+        use_cache=True,
+        component_args=None,
+        kwargs=None,
+    ):
+        if not component_id:
+            raise AssertionError("Component id is required")
+        if not component_name:
+            raise AssertionError("Component name is required")
+        if ".." in component_name:
+            raise AssertionError("Invalid component name")
+
+        component_args = component_args if component_args is not None else []
+        kwargs = kwargs if kwargs is not None else {}
+
+        locations = get_locations(component_name)
+
+        for module_name, class_name in locations:
+            try:
+                module = importlib.import_module(module_name)
+                component_class = getattr(module, class_name, None)
+
+                if component_class is None:
+                    continue
+
+                component = build_component(
+                    component_class=component_class,
+                    component_id=component_id,
+                    component_name=component_name,
+                    component_key=component_key,
+                    parent=parent,
+                    request=request,
+                    component_args=component_args,
+                    **kwargs,
+                )
+
+                return component
+            except ModuleNotFoundError as e:
+                if str(e.name) != module_name and str(e.name) != module_name.split(".")[-1]:
+                    raise ComponentModuleLoadError(
+                        f"Error loading '{module_name}': {e}",
+                        locations=locations,
+                    ) from e
+                continue
+            except AttributeError:
+                continue
+
+        raise ComponentModuleLoadError(
+            f"Could not find component '{component_name}'",
+            locations=locations,
         )
 
 
