@@ -334,6 +334,15 @@ class Component(TemplateView):
     def post_parse(self):
         pass
 
+    def _handle_safe_fields(self):
+        if hasattr(self, "Meta") and hasattr(self.Meta, "safe"):
+            from django.utils.safestring import mark_safe
+
+            for field_name in self.Meta.safe:
+                value = getattr(self, field_name, None)
+                if isinstance(value, str):
+                    setattr(self, field_name, mark_safe(value))
+
     def get_frontend_context_variables(self):
         frontend_vars = {}
         attributes = self._attributes()
@@ -569,6 +578,24 @@ class Component(TemplateView):
             or name in excludes
         )
 
+    def dispatch(self, request, *args, **kwargs):
+        self.request = request
+        self.setup(request, *args, **kwargs)
+        self.mount()
+        self.hydrate()
+        return self.render_to_response(
+            context=self.get_context_data(),
+            component=self,
+        )
+
+    @classmethod
+    def as_view(cls, **initkwargs):
+        if "component_id" not in initkwargs:
+            initkwargs["component_id"] = _generate_component_id()
+        if "component_name" not in initkwargs:
+            initkwargs["component_name"] = cls.__name__
+        return super().as_view(**initkwargs)
+
     @staticmethod
     def create(
         *,
@@ -660,3 +687,8 @@ class Component(TemplateView):
 
 
 UnicornView = Component
+
+
+def _generate_component_id():
+    import uuid
+    return str(uuid.uuid4())[:8]

@@ -405,12 +405,24 @@ def _process_request(request, component_request):
                     if result is not None:
                         return_data.value = result
                 except ValidationError as e:
+                    component_method_called.send(
+                        sender=component_with_method.__class__,
+                        component=component_with_method,
+                        method_name=method_name,
+                        args=method_args,
+                        kwargs=method_kwargs,
+                        result=None,
+                        success=False,
+                        error=e,
+                    )
                     component._handle_validation_error(e)
 
     component.complete()
     component_completed.send(sender=component.__class__, component=component)
 
     component_request.data = orjson.loads(component.get_frontend_context_variables())
+
+    component._handle_safe_fields()
 
     if not is_reset_called:
         updated_data = {}

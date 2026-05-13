@@ -1,3 +1,5 @@
+from django.db.models import QuerySet
+
 from dk_unicorn.errors import UnicornViewError
 from dk_unicorn.signals import (
     component_property_resolved,
@@ -71,7 +73,7 @@ def set_property_value(component, property_name, property_value, data=None, call
             else:
                 component_or_field = component_or_field[part]
                 data_or_dict = data_or_dict.get(part, {})
-        elif isinstance(component_or_field, (list,)):
+        elif isinstance(component_or_field, (list, QuerySet)):
             part_int = int(part)
             if idx == len(property_name_parts) - 1:
                 component_or_field[part_int] = property_value
