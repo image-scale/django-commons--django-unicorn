@@ -11,4 +11,4 @@ Build the reactive component framework from the most important user-facing featu
 - [x] Task 5: Action processing and message endpoint — AJAX POST endpoint that receives user interactions, validates checksums, classifies actions (syncInput, callMethod, reset, refresh, toggle), processes them against the component, and returns updated DOM/data/errors
 - [x] Task 6: Component caching — persist component trees between AJAX requests using Django's cache framework, handle pickling with circular parent/child references via lightweight stubs
 - [x] Task 7: Form validation — components declare a Django Form/ModelForm class and validate user input against it, with structured error reporting back to the frontend
-- [ ] Task 8: Management command — Django manage.py command to scaffold new component files (Python class and HTML template) in the appropriate app directory
+- [x] Task 8: Management command — Django manage.py command to scaffold new component files (Python class and HTML template) in the appropriate app directory

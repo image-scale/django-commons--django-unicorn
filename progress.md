@@ -51,3 +51,10 @@
 **Commit**: Add form validation
 **Acceptance**: 10/10 criteria met
 **Verification**: 8 tests FAIL on previous state (AttributeError/_handle_validation_error, ValidationError unhandled), 286 PASS on current state
+
+## Round 8
+**Task**: Task 8 — Management command
+**Files created**: dk_unicorn/management/__init__.py, dk_unicorn/management/commands/__init__.py, dk_unicorn/management/commands/startunicorn.py, tests/management/__init__.py, tests/management/commands/__init__.py, tests/management/commands/startunicorn/__init__.py, tests/management/commands/startunicorn/test_handle.py
+**Commit**: Add management command for scaffolding components
+**Acceptance**: 9/9 criteria met
+**Verification**: Tests FAIL without production code (ModuleNotFoundError), 294 PASS on current state

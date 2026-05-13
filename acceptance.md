@@ -51,3 +51,16 @@
 - [x] Message view catches ValidationError from method calls
 - [x] Message view calls validate after processing actions
 - [x] Validation errors appear in response JSON errors field
+
+## Task 8: Management command
+
+### Acceptance Criteria
+- [x] startunicorn command accepts app_name and component_names arguments
+- [x] Command creates components directory with __init__.py
+- [x] Command creates templates/unicorn directory
+- [x] Command generates Python component file with PascalCase class name
+- [x] Command generates HTML template file with component name
+- [x] Command skips existing component/template files with a message
+- [x] Command handles nested component names (e.g. "sub.my-widget")
+- [x] Command handles multiple component names in one invocation
+- [x] Command raises CommandError for non-existent apps
